@@ -1,7 +1,9 @@
-import { app, BrowserWindow, ipcMain, Menu, protocol } from 'electron';
+import { app, BrowserWindow, ipcMain, Menu, protocol, session } from 'electron';
 import * as path from 'path';
 import reloader from 'electron-reloader';
 import Store from 'electron-store';
+import { ElectronBlocker } from '@ghostery/adblocker-electron';
+import fetch from 'cross-fetch';
 
 try {
   reloader(module);
@@ -31,7 +33,7 @@ const store = new Store({
 
 let mainWindow: BrowserWindow | null;
 
-app.on('ready', () => {
+app.on('ready', async () => {
   createWindow();
 
   protocol.registerFileProtocol('nemalo', (request, callback) => {
@@ -39,6 +41,15 @@ app.on('ready', () => {
     const filePath = path.join(__dirname, 'renderer', url === 'home' || url === 'settings' ? 'index.html' : url);
     callback({ path: filePath });
   });
+
+  // Adblocker integration
+  try {
+    const blocker = await ElectronBlocker.fromPrebuiltAdsAndTracking(fetch);
+    blocker.enableBlockingInSession(session.defaultSession);
+    console.log('Adblocker initialized and enabled.');
+  } catch (error) {
+    console.error('Failed to initialize adblocker:', error);
+  }
 });
 
 function createWindow() {
@@ -97,9 +108,18 @@ ipcMain.on('close-window', () => {
 });
 
 ipcMain.on('show-context-menu', (event) => {
-    const template = [
-        { label: 'Reload', click: () => { event.sender.send('context-menu-command', { command: 'reload' }); } },
-        { label: 'Inspect Element', click: () => { event.sender.send('context-menu-command', { command: 'inspect' }); } },
+    const template: (Electron.MenuItemConstructorOptions | Electron.MenuItem)[] = [
+        { label: 'Back', enabled: event.sender.canGoBack(), click: () => { event.sender.goBack(); } },
+        { label: 'Forward', enabled: event.sender.canGoForward(), click: () => { event.sender.goForward(); } },
+        { label: 'Reload', click: () => { event.sender.reload(); } },
+        { type: 'separator' },
+        { label: 'Cut', enabled: event.sender.isFocused() && event.sender.hasSelection(), click: () => { event.sender.cut(); } },
+        { label: 'Copy', enabled: event.sender.isFocused() && event.sender.hasSelection(), click: () => { event.sender.copy(); } },
+        { label: 'Paste', enabled: event.sender.isFocused(), click: () => { event.sender.paste(); } },
+        { type: 'separator' },
+        { label: 'Select All', click: () => { event.sender.selectAll(); } },
+        { type: 'separator' },
+        { label: 'Inspect Element', click: () => { event.sender.openDevTools(); } },
     ];
     const menu = Menu.buildFromTemplate(template);
     menu.popup({ window: BrowserWindow.fromWebContents(event.sender) || undefined });

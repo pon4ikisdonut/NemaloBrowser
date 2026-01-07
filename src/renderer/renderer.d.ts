@@ -5,7 +5,6 @@ export interface IElectronAPI {
   maximizeWindow: () => void;
   closeWindow: () => void;
   showContextMenu: () => void;
-  onContextMenuCommand: (callback: (args: { command: string }) => void) => void;
   navigateWebview: (url: string, tabId: string) => Promise<void>;
   getSetting: (key: string) => Promise<any>;
   setSetting: (key: string, value: any) => Promise<void>;

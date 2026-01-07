@@ -94,6 +94,7 @@ const useStyles = makeStyles({
     flexGrow: 1,
     position: 'relative',
     backgroundColor: tokens.colorNeutralBackground4,
+    overflowY: 'auto',
   },
   webview: {
     width: '100%',
