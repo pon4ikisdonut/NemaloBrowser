@@ -20,9 +20,11 @@ const useStyles = makeStyles({
 
 interface HomePageProps {
   handleNavigate: (url: string) => void;
+  searchEngine?: string;
+  customSearchUrl?: string;
 }
 
-export const HomePage: React.FC<HomePageProps> = ({ handleNavigate }) => {
+export const HomePage: React.FC<HomePageProps> = ({ handleNavigate, searchEngine, customSearchUrl }) => {
   const styles = useStyles();
   const [searchValue, setSearchValue] = useState<string>('');
 
@@ -30,7 +32,18 @@ export const HomePage: React.FC<HomePageProps> = ({ handleNavigate }) => {
     if (e.key === 'Enter' && searchValue) {
       let url = searchValue;
       if (!url.startsWith('http') && !url.startsWith('nemalo://')) {
-         url = 'https://www.google.com/search?q=' + encodeURIComponent(url);
+        let searchUrl = 'https://www.google.com/search?q='; // Default to Google
+        if (searchEngine === 'DuckDuckGo') {
+          searchUrl = 'https://duckduckgo.com/?q=';
+        } else if (searchEngine === 'Bing') {
+          searchUrl = 'https://www.bing.com/search?q=';
+        } else if (searchEngine === 'Custom' && customSearchUrl) {
+          searchUrl = customSearchUrl.replace('%s', encodeURIComponent(url));
+          url = searchUrl; // If custom URL already includes %s, no further encoding is needed
+        }
+        if (searchEngine !== 'Custom') { // For predefined search engines, encode the query
+          url = searchUrl + encodeURIComponent(url);
+        }
       }
       handleNavigate(url);
     }

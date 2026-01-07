@@ -20,6 +20,8 @@ import {
 } from '@fluentui/react-icons';
 import { WindowControls } from './WindowControls';
 import { HomePage } from './HomePage';
+import { SettingsPage } from './SettingsPage';
+
 import { AppContext } from './AppContext';
 
 const useStyles = makeStyles({
@@ -108,9 +110,6 @@ interface BrowserTab {
 }
 
 const generateId = () => String(Date.now() + Math.random());
-const initialTabs: BrowserTab[] = [
-  { id: generateId(), url: 'nemalo://home', title: 'New Tab', favicon: null },
-];
 
 const App: React.FC = () => {
   const styles = useStyles();
@@ -121,11 +120,42 @@ const App: React.FC = () => {
   }
 
   const { setTheme } = appContext;
-  const [tabs, setTabs] = useState<BrowserTab[]>(initialTabs);
-  const [activeTabId, setActiveTabId] = useState<string>(initialTabs[0].id);
+  const [tabs, setTabs] = useState<BrowserTab[]>([]);
+  const [activeTabId, setActiveTabId] = useState<string>('');
+  const [initializationComplete, setInitializationComplete] = useState<boolean>(false);
   const webviewRefs = useRef<{[key: string]: Electron.WebviewTag | null}>({});
   const [addressBarValue, setAddressBarValue] = useState<string>('');
   const tabsContainerRef = useRef<HTMLDivElement>(null);
+  const [startPageSetting, setStartPageSetting] = useState<string>('nemalo://home'); // Local state for start page
+  const [searchEngineSetting, setSearchEngineSetting] = useState<string>('Google');
+  const [customSearchUrlSetting, setCustomSearchUrlSetting] = useState<string>('');
+
+  useEffect(() => {
+    const initializeSettings = async () => {
+      const storedStartPage = await window.electronAPI.getSetting('startPage');
+      setStartPageSetting(storedStartPage || 'nemalo://home');
+
+      const storedSearchEngine = await window.electronAPI.getSetting('searchEngine');
+      setSearchEngineSetting(storedSearchEngine || 'Google');
+      const storedCustomSearchUrl = await window.electronAPI.getSetting('customSearchUrl');
+      setCustomSearchUrlSetting(storedCustomSearchUrl || '');
+
+      const initialTab: BrowserTab = { 
+        id: generateId(), 
+        url: storedStartPage || 'nemalo://home', 
+        title: 'New Tab', 
+        favicon: null 
+      };
+      setTabs([initialTab]);
+      setActiveTabId(initialTab.id);
+      setInitializationComplete(true);
+
+      const storedTheme = await window.electronAPI.getSetting('theme');
+      setTheme(storedTheme || 'system');
+    };
+
+    initializeSettings();
+  }, [setTheme]);
   
   const handleNavigate = (url: string, tabId: string) => {
     setTabs(currentTabs => currentTabs.map(tab => tab.id === tabId ? { ...tab, url } : tab));
@@ -204,7 +234,7 @@ const App: React.FC = () => {
   }, []);
 
   const handleAddTab = () => {
-    const newTab: BrowserTab = { id: generateId(), url: 'nemalo://home', title: 'New Tab', favicon: null };
+    const newTab: BrowserTab = { id: generateId(), url: startPageSetting, title: 'New Tab', favicon: null };
     setTabs([...tabs, newTab]);
     setActiveTabId(newTab.id);
   };
@@ -234,11 +264,26 @@ const App: React.FC = () => {
     if (e.key === 'Enter') {
       let url = addressBarValue;
       if (!url.startsWith('http') && !url.startsWith('nemalo://')) {
-         url = 'https://www.google.com/search?q=' + encodeURIComponent(url);
+        let searchUrl = 'https://www.google.com/search?q='; // Default to Google
+        if (searchEngineSetting === 'DuckDuckGo') {
+          searchUrl = 'https://duckduckgo.com/?q=';
+        } else if (searchEngineSetting === 'Bing') {
+          searchUrl = 'https://www.bing.com/search?q=';
+        } else if (searchEngineSetting === 'Custom' && customSearchUrlSetting) {
+          searchUrl = customSearchUrlSetting.replace('%s', encodeURIComponent(url));
+          url = searchUrl; // If custom URL already includes %s, no further encoding is needed
+        }
+        if (searchEngineSetting !== 'Custom') { // For predefined search engines, encode the query
+          url = searchUrl + encodeURIComponent(url);
+        }
       }
       handleNavigate(url, activeTabId);
     }
   };
+
+  if (!initializationComplete) {
+    return <div>Loading...</div>; // Or a more elaborate loading spinner
+  }
 
   return (
     <div className={styles.container}>
@@ -260,7 +305,6 @@ const App: React.FC = () => {
             </TabList>
           </div>
           <Button icon={<Add24Regular />} onClick={handleAddTab} appearance="subtle" />
-          <Button icon={<Settings24Regular />} onClick={() => handleNavigate('nemalo://settings', activeTabId)} appearance="subtle" />
           <div className={styles.spacer}></div>
           <WindowControls />
         </div>
@@ -277,6 +321,7 @@ const App: React.FC = () => {
             onChange={(e, data) => setAddressBarValue(data.value)}
             onKeyDown={handleAddressBarSubmit}
           />
+          <Button icon={<Settings24Regular />} onClick={() => handleNavigate('nemalo://settings', activeTabId)} appearance="subtle" />
         </div>
       </header>
       <main className={styles.content}>
@@ -285,7 +330,9 @@ const App: React.FC = () => {
           const isActive = tab.id === activeTabId;
 
           if (isHomePage) {
-            return <div key={tab.id} style={{ display: isActive ? 'block' : 'none', height: '100%' }}><HomePage handleNavigate={(url: string) => handleNavigate(url, tab.id)} /></div>;
+            return <div key={tab.id} style={{ display: isActive ? 'block' : 'none', height: '100%' }}><HomePage handleNavigate={(url: string) => handleNavigate(url, tab.id)} searchEngine={searchEngineSetting} customSearchUrl={customSearchUrlSetting} /></div>;
+          } else if (tab.url === 'nemalo://settings') {
+            return <div key={tab.id} style={{ display: isActive ? 'block' : 'none', height: '100%' }}><SettingsPage /></div>;
           }
           return (
             <webview

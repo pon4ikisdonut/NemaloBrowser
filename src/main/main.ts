@@ -1,6 +1,7 @@
 import { app, BrowserWindow, ipcMain, Menu, protocol } from 'electron';
 import * as path from 'path';
 import reloader from 'electron-reloader';
+import Store from 'electron-store';
 
 try {
   reloader(module);
@@ -9,6 +10,25 @@ try {
 protocol.registerSchemesAsPrivileged([
   { scheme: 'nemalo', privileges: { standard: true, secure: true, bypassCSP: true, allowServiceWorkers: true, supportFetchAPI: true, corsEnabled: true } }
 ]);
+
+const store = new Store({
+  schema: {
+    theme: {
+      type: 'string',
+      enum: ['light', 'dark', 'system'],
+      default: 'system',
+    },
+    startPage: {
+      type: 'string',
+      format: 'url',
+      default: 'nemalo://home',
+    },
+    searchEngine: {
+      type: 'string',
+      default: 'Google',
+    },
+  },
+});
 
 let mainWindow: BrowserWindow | null;
 
@@ -94,4 +114,16 @@ ipcMain.handle('navigate-webview', async (event, url: string, tabId: string) => 
   // If you want to actually navigate a webview here, you'd need a way
   // to reference the specific webview associated with the tabId.
   // This usually involves storing references to webContents or BrowserWindow instances.
+});
+
+ipcMain.handle('get-setting', (event, key: string) => {
+  return store.get(key);
+});
+
+ipcMain.handle('set-setting', (event, key: string, value: any) => {
+  store.set(key, value);
+});
+
+ipcMain.handle('get-all-settings', () => {
+  return store.store;
 });
