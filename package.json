@@ -1,0 +1,42 @@
+{
+  "name": "nemalobrowser",
+  "version": "0.2.0",
+  "description": "A modern, beautiful, and efficient web browser.",
+  "main": "dist/main.js",
+  "author": "pon4ikisdonut",
+  "license": "GPL-3.0-or-later",
+  "scripts": {
+    "dev": "concurrently \"npm:watch\" \"wait-on dist/main.js && npm:start\"",
+    "start": "electron .",
+    "watch": "webpack --config webpack.config.js --watch",
+    "build": "electron-builder",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "browser",
+    "electron"
+  ],
+  "dependencies": {
+    "@fluentui/react-components": "^9.72.9",
+    "@fluentui/react-icons": "^2.0.316",
+    "react": "^19.2.3",
+    "react-dom": "^19.2.3"
+  },
+  "devDependencies": {
+    "@types/electron": "^1.4.38",
+    "@types/react": "^19.2.7",
+    "@types/react-dom": "^19.2.3",
+    "concurrently": "^9.2.1",
+    "css-loader": "^7.1.2",
+    "electron": "^39.2.7",
+    "electron-builder": "^26.0.12",
+    "electron-reloader": "^1.2.3",
+    "html-webpack-plugin": "^5.6.5",
+    "style-loader": "^4.0.0",
+    "ts-loader": "^9.5.4",
+    "typescript": "^5.9.3",
+    "wait-on": "^9.0.3",
+    "webpack": "^5.104.1",
+    "webpack-cli": "^6.0.1"
+  }
+}
