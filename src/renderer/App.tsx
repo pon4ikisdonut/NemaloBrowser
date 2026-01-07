@@ -16,6 +16,7 @@ import {
   Add24Regular,
   Dismiss24Regular,
   Globe24Regular,
+  Settings24Regular,
 } from '@fluentui/react-icons';
 import { WindowControls } from './WindowControls';
 import { HomePage } from './HomePage';
@@ -119,13 +120,18 @@ const App: React.FC = () => {
     throw new Error('App component must be used within an AppContext.Provider');
   }
 
-  const { setTheme, handleNavigate: contextHandleNavigate } = appContext;
+  const { setTheme } = appContext;
   const [tabs, setTabs] = useState<BrowserTab[]>(initialTabs);
   const [activeTabId, setActiveTabId] = useState<string>(initialTabs[0].id);
   const webviewRefs = useRef<{[key: string]: Electron.WebviewTag | null}>({});
   const [addressBarValue, setAddressBarValue] = useState<string>('');
   const tabsContainerRef = useRef<HTMLDivElement>(null);
   
+  const handleNavigate = (url: string, tabId: string) => {
+    setTabs(currentTabs => currentTabs.map(tab => tab.id === tabId ? { ...tab, url } : tab));
+    window.electronAPI.navigateWebview(url, tabId);
+  };
+
   const activeTab = tabs.find(tab => tab.id === activeTabId);
 
   useEffect(() => {
@@ -230,7 +236,7 @@ const App: React.FC = () => {
       if (!url.startsWith('http') && !url.startsWith('nemalo://')) {
          url = 'https://www.google.com/search?q=' + encodeURIComponent(url);
       }
-      contextHandleNavigate(url, activeTabId);
+      handleNavigate(url, activeTabId);
     }
   };
 
@@ -254,6 +260,7 @@ const App: React.FC = () => {
             </TabList>
           </div>
           <Button icon={<Add24Regular />} onClick={handleAddTab} appearance="subtle" />
+          <Button icon={<Settings24Regular />} onClick={() => handleNavigate('nemalo://settings', activeTabId)} appearance="subtle" />
           <div className={styles.spacer}></div>
           <WindowControls />
         </div>
@@ -278,7 +285,7 @@ const App: React.FC = () => {
           const isActive = tab.id === activeTabId;
 
           if (isHomePage) {
-            return <div key={tab.id} style={{ display: isActive ? 'block' : 'none', height: '100%' }}><HomePage handleNavigate={(url: string) => contextHandleNavigate(url, tab.id)} /></div>;
+            return <div key={tab.id} style={{ display: isActive ? 'block' : 'none', height: '100%' }}><HomePage handleNavigate={(url: string) => handleNavigate(url, tab.id)} /></div>;
           }
           return (
             <webview

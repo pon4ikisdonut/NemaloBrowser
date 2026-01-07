@@ -6,6 +6,7 @@ export interface IElectronAPI {
   closeWindow: () => void;
   showContextMenu: () => void;
   onContextMenuCommand: (callback: (args: { command: string }) => void) => void;
+  navigateWebview: (url: string, tabId: string) => Promise<void>;
 }
 
 declare global {

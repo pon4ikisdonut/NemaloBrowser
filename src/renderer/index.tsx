@@ -8,10 +8,8 @@ import { AppContext, IAppContext } from './AppContext';
 const Root = () => {
   const [theme, setTheme] = useState<Theme>(webLightTheme);
   
-  // This is a placeholder. The actual navigation logic resides in App.tsx
-  // and will be provided through the context value there.
   const handleNavigate = useCallback((url: string, tabId: string) => {
-    console.log('Navigate to:', url, 'in tab:', tabId);
+    window.electronAPI.navigateWebview(url, tabId);
   }, []);
 
   const contextValue: IAppContext = {

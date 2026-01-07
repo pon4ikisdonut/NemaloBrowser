@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, Menu } from 'electron';
+import { app, BrowserWindow, ipcMain, Menu, protocol } from 'electron';
 import * as path from 'path';
 import reloader from 'electron-reloader';
 
@@ -6,10 +6,20 @@ try {
   reloader(module);
 } catch (_) {}
 
+protocol.registerSchemesAsPrivileged([
+  { scheme: 'nemalo', privileges: { standard: true, secure: true, bypassCSP: true, allowServiceWorkers: true, supportFetchAPI: true, corsEnabled: true } }
+]);
+
 let mainWindow: BrowserWindow | null;
 
 app.on('ready', () => {
   createWindow();
+
+  protocol.registerFileProtocol('nemalo', (request, callback) => {
+    const url = request.url.substr(9); // Remove "nemalo://"
+    const filePath = path.join(__dirname, 'renderer', url === 'home' || url === 'settings' ? 'index.html' : url);
+    callback({ path: filePath });
+  });
 });
 
 function createWindow() {
@@ -25,6 +35,7 @@ function createWindow() {
       nodeIntegration: false,
       contextIsolation: true,
       webviewTag: true,
+      webSecurity: false, // Temporarily disable for easier testing of custom protocols
     },
   });
 
@@ -41,6 +52,7 @@ app.on('window-all-closed', () => {
     app.quit();
   }
 });
+
 
 app.on('activate', () => {
   if (mainWindow === null) {
@@ -72,4 +84,14 @@ ipcMain.on('show-context-menu', (event) => {
     ];
     const menu = Menu.buildFromTemplate(template);
     menu.popup({ window: BrowserWindow.fromWebContents(event.sender) || undefined });
+});
+
+ipcMain.handle('navigate-webview', async (event, url: string, tabId: string) => {
+  // In a real application, you would manage webviews here and
+  // tell the correct webview to load the URL.
+  // For now, we'll just log it.
+  console.log(`Main process received navigation request for URL: ${url} in tab: ${tabId}`);
+  // If you want to actually navigate a webview here, you'd need a way
+  // to reference the specific webview associated with the tabId.
+  // This usually involves storing references to webContents or BrowserWindow instances.
 });
