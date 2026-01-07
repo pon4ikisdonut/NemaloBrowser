@@ -20,7 +20,6 @@ const store = new Store({
     },
     startPage: {
       type: 'string',
-      format: 'url',
       default: 'nemalo://home',
     },
     searchEngine: {
