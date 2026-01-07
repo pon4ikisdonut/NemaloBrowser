@@ -1,6 +1,6 @@
 {
   "name": "nemalobrowser",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "A modern, beautiful, and efficient web browser.",
   "main": "dist/main.js",
   "author": "pon4ikisdonut",
